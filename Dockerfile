@@ -1,5 +1,5 @@
 # Stage 1: Build website
-FROM --platform=${BUILDPLATFORM} docker.io/node:18 as website-builder
+FROM docker.io/node:18 as website-builder
 
 COPY ./website /work/website/
 COPY ./blueprints /work/blueprints/
@@ -10,7 +10,7 @@ WORKDIR /work/website
 RUN npm ci && npm run build-docs-only
 
 # Stage 2: Build webui
-FROM --platform=${BUILDPLATFORM} docker.io/node:18 as web-builder
+FROM docker.io/node:18 as web-builder
 
 COPY ./web /work/web/
 COPY ./website /work/website/
@@ -31,7 +31,7 @@ RUN pip install --no-cache-dir poetry && \
     poetry export -f requirements.txt --dev --output requirements-dev.txt
 
 # Stage 4: Build go proxy
-FROM docker.io/golang:1.20.1-bullseye AS go-builder
+FROM docker.io/golang:1.20.0-bullseye AS go-builder
 
 WORKDIR /work
 
@@ -47,19 +47,19 @@ COPY ./go.sum /work/go.sum
 RUN go build -o /work/authentik ./cmd/server/
 
 # Stage 5: MaxMind GeoIP
-FROM docker.io/maxmindinc/geoipupdate:v4.10 as geoip
+#FROM docker.io/maxmindinc/geoipupdate:v4.10 as geoip
 
-ENV GEOIPUPDATE_EDITION_IDS="GeoLite2-City"
-ENV GEOIPUPDATE_VERBOSE="true"
+#ENV GEOIPUPDATE_EDITION_IDS="GeoLite2-City"
+#ENV GEOIPUPDATE_VERBOSE="true"
 
-RUN --mount=type=secret,id=GEOIPUPDATE_ACCOUNT_ID \
-    --mount=type=secret,id=GEOIPUPDATE_LICENSE_KEY \
-    mkdir -p /usr/share/GeoIP && \
-    /bin/sh -c "\
-        export GEOIPUPDATE_ACCOUNT_ID=$(cat /run/secrets/GEOIPUPDATE_ACCOUNT_ID); \
-        export GEOIPUPDATE_LICENSE_KEY=$(cat /run/secrets/GEOIPUPDATE_LICENSE_KEY); \
-        /usr/bin/entry.sh || echo 'Failed to get GeoIP database, disabling'; exit 0 \
-    "
+#RUN --mount=type=secret,id=GEOIPUPDATE_ACCOUNT_ID \
+#    --mount=type=secret,id=GEOIPUPDATE_LICENSE_KEY \
+#    mkdir -p /usr/share/GeoIP && \
+#    /bin/sh -c "\
+#        export GEOIPUPDATE_ACCOUNT_ID=$(cat /run/secrets/GEOIPUPDATE_ACCOUNT_ID); \
+#        export GEOIPUPDATE_LICENSE_KEY=$(cat /run/secrets/GEOIPUPDATE_LICENSE_KEY); \
+#        /usr/bin/entry.sh || echo 'Failed to get GeoIP database, disabling'; exit 0 \
+#    "
 
 # Stage 6: Run
 FROM docker.io/python:3.11.2-slim-bullseye AS final-image
@@ -75,7 +75,7 @@ ENV GIT_BUILD_HASH=$GIT_BUILD_HASH
 
 COPY --from=poetry-locker /work/requirements.txt /
 COPY --from=poetry-locker /work/requirements-dev.txt /
-COPY --from=geoip /usr/share/GeoIP /geoip
+#COPY --from=geoip /usr/share/GeoIP /geoip
 
 RUN apt-get update && \
     # Required for installing pip packages

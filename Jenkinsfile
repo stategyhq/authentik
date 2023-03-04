@@ -4,6 +4,9 @@ node {
                   registryCredential = 'dockerhub'
                   registry="https://hub.docker.com/r/stategyhq/authentik"
               }
+    parameters {
+    string(name: 'MY_PARAM', defaultValue: 'default_value', description: 'My parameter')
+  }
 
     stage('Clone Repo') {
       checkout scm
@@ -29,4 +32,19 @@ node {
     }
      echo "image built successfully"
     }
+    stage('Remove Unused docker image') {
+  
+       sh "docker rmi stategyhq/authentik:$BUILD_NUMBER"
+  
+    }
+
+    stage ('Trigger Update Manifest') {
+           
+            echo "Triggering Update Manifest Job"
+            def buildNumberString = env.BUILD_NUMBER.toString()
+            echo buildNumberString
+            def DOCKERTAG = [string(name: 'MY_PARAM', value: buildNumberString)]
+            build job: 'authentik-manifest', parameters: DOCKERTAG
+                
+        }
 }

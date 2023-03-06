@@ -5,7 +5,7 @@ node {
                   registry="https://hub.docker.com/r/stategyhq/authentik"
               }
     parameters {
-    string(name: 'MY_PARAM', defaultValue: 'default_value', description: 'My parameter')
+    string(name: 'TAG', defaultValue: 'default_value', description: 'image tag')
   }
 
     stage('Clone Repo') {
@@ -18,7 +18,6 @@ node {
       sh 'docker -v'
       sh 'printenv'
     }
-
 
     stage('Build and push Docker Image'){
 
@@ -43,8 +42,8 @@ node {
             echo "Triggering Update Manifest Job"
             def buildNumberString = env.BUILD_NUMBER.toString()
             echo buildNumberString
-            def DOCKERTAG = [string(name: 'MY_PARAM', value: buildNumberString)]
-            build job: 'authentik-manifest', parameters: DOCKERTAG
+            def DOCKERTAG = [string(name: 'TAG', value: buildNumberString)]
+            build job: 'auth-manifest', parameters: DOCKERTAG
                 
         }
 }
